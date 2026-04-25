@@ -20,10 +20,15 @@ import (
 )
 
 const (
-	serverInstructions = `You are connected to a Google Workspace MCP server. Use it to read content from Google Docs and Google Sheets on behalf of the user.
+	serverInstructions = `You are connected to a Google Workspace MCP server. Use it to read content from Google Docs, Google Sheets, and Google Drive on behalf of the user.
+
+Rules (Drive):
+- When the user refers to a file by name rather than ID, use SearchFiles to locate it first.
+- Use ListFolderContents to browse folder structure; use "root" as the folder ID for the top level of My Drive.
+- After finding a file, check its type field to decide which tool to use: "google_doc" → ReadDocumentAsMarkdown, "google_sheet" → ListSheets then ReadSheet.
+- If you have a file ID but are unsure of its type, call GetFileMetadata first.
 
 Rules (Docs):
-- Always use the document ID from the URL, not the document title.
 - Before reading an unfamiliar document, call GetDocumentSize to check its character count.
 - Prefer reading documents in chunks using offset and limit rather than all at once.
 - Do not infer or fabricate document content — only use what the tool returns.
@@ -35,6 +40,54 @@ Rules (Sheets):
 - Sheet names are case-sensitive and must exactly match what ListSheets returns.
 - A sheet may contain multiple independent tables at different positions — read in small ranges first to locate structure before reading large blocks.
 - Do not infer or fabricate sheet data — only use what the tool returns.`
+
+	descriptionSearchFiles = `Searches Google Drive and returns matching files.
+
+Results include id, name, mimeType, and type (a friendly label) for each file.
+Results are limited to 50 and exclude trashed files.
+
+The type field tells you which tool to use to read the file:
+- "google_doc"   → ReadDocumentAsMarkdown
+- "google_sheet" → ListSheets, then ReadSheet
+- "folder"       → ListFolderContents
+- "google_slide" → not supported for reading
+
+Query syntax (combine terms with "and" / "or"):
+- name contains 'budget'
+- name = 'Q1 Report'
+- mimeType = 'application/vnd.google-apps.spreadsheet'
+- mimeType = 'application/vnd.google-apps.folder'
+- 'FOLDER_ID' in parents
+
+Parameters:
+- query (required): Drive query string`
+
+	descriptionListFolderContents = `Lists the direct children of a Google Drive folder.
+
+Returns id, name, mimeType, and type for each item in the folder.
+Results are limited to 50 and exclude trashed files.
+
+Use "root" as the folder ID to list the top level of My Drive.
+For subfolders, use the folder ID returned by a previous SearchFiles or ListFolderContents call.
+
+The type field tells you which tool to use to read a file:
+- "google_doc"   → ReadDocumentAsMarkdown
+- "google_sheet" → ListSheets, then ReadSheet
+- "folder"       → call ListFolderContents again with that folder's ID
+
+Parameters:
+- folder_id (required): ID of the folder to list; use "root" for My Drive`
+
+	descriptionGetFileMetadata = `Returns full metadata for a single Google Drive file.
+
+Use this when you have a file ID but need to know its type, size, or last modified time
+before deciding how to read it.
+
+Fields returned: id, name, mimeType, type, size (bytes), modifiedTime (RFC 3339), ownerEmail.
+size is 0 for Google Workspace files (Docs, Sheets, Slides) since they have no raw byte size.
+
+Parameters:
+- file_id (required): the file ID`
 
 	descriptionListSheets = `Returns the names of all sheets (tabs) in a Google Spreadsheet.
 
@@ -158,6 +211,20 @@ func main() {
 }
 
 func addTools(server *mcp.Server, handler *tools.Handler) {
+	// Drive tools.
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "SearchFiles",
+		Description: descriptionSearchFiles,
+	}, handler.SearchFiles)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "ListFolderContents",
+		Description: descriptionListFolderContents,
+	}, handler.ListFolderContents)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "GetFileMetadata",
+		Description: descriptionGetFileMetadata,
+	}, handler.GetFileMetadata)
+
 	// Docs tools.
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "GetDocumentSize",

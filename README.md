@@ -1,8 +1,16 @@
 # Workspace MCP
 
-An MCP server that allows AI agents to access Google documents and spreadsheets.
+An MCP server that gives AI agents the ability to navigate Google Drive, read Google Docs and Sheets.
 
 ## Tools
+
+### Drive
+
+| Tool | Description |
+|------|-------------|
+| `SearchFiles` | Searches Google Drive using Drive query syntax |
+| `ListFolderContents` | Lists direct children of a folder; use `"root"` for My Drive |
+| `GetFileMetadata` | Returns name, type, size, and modified time for a file |
 
 ### Docs
 
