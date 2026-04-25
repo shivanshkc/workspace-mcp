@@ -1,0 +1,46 @@
+name: CD
+on:
+  # Runs on all push events on main.
+  push:
+    branches: [ main ]
+
+permissions:
+  # Can only read the source code.
+  contents: read
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.26
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --fix=false --timeout 5m
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build
+        run: go build cmd/workspace-mcp/main.go
+
+  semver:
+    name: Semver
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/semver
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -24,7 +24,6 @@ type Config struct {
 	OAuthCallbackPort     int    `json:"oauthCallbackPort"`
 }
 
-
 // Load configs from the given JSON file.
 func Load(jsonPath string) (Config, error) {
 	content, err := os.ReadFile(jsonPath)

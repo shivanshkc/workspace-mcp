@@ -101,7 +101,7 @@ func colToLetter(n int) string {
 }
 
 // quotedSheetName wraps a sheet name in single quotes for safe use in A1 range notation,
-// escaping any single quotes within the name as ''.
+// escaping any single quotes within the name as ”.
 func quotedSheetName(name string) string {
 	return "'" + strings.ReplaceAll(name, "'", "''") + "'"
 }

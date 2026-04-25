@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/shivanshkc/workspacemcp/pkg/workspace"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // ReadDocumentAsMarkdownInput holds the input parameters required by the ReadDocumentAsMarkdown tool.

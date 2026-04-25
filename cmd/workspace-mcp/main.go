@@ -5,18 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"net/http"
-	"os/exec"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/shivanshkc/workspacemcp/internal/config"
 	"github.com/shivanshkc/workspacemcp/internal/tools"
 	"github.com/shivanshkc/workspacemcp/pkg/workspace"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const (
@@ -197,7 +197,7 @@ func autoCodeFunc(ctx context.Context, port int) workspace.CodeFunc {
 					http.Error(w, "missing code", http.StatusBadRequest)
 					return
 				}
-				fmt.Fprintln(w, "Authorization complete. You may close this tab.")
+				_, _ = fmt.Fprintln(w, "Authorization complete. You may close this tab.")
 				if f, ok := w.(http.Flusher); ok {
 					f.Flush()
 				}
@@ -224,6 +224,8 @@ func autoCodeFunc(ctx context.Context, port int) workspace.CodeFunc {
 }
 
 // manualCodeFunc is a CodeFunc that prints the auth URL and reads the code from stdin.
+//
+//nolint:unused
 func manualCodeFunc(authURL string) (string, error) {
 	fmt.Println("Go to the following link in your browser then type the authorization code:\n", authURL)
 
