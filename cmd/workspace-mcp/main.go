@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/shivanshkc/doshkhaleen/internal/config"
-	"github.com/shivanshkc/doshkhaleen/internal/tools"
+	"github.com/shivanshkc/workspacemcp/internal/config"
+	"github.com/shivanshkc/workspacemcp/internal/tools"
 )
 
 const (
@@ -28,7 +28,7 @@ func main() {
 
 	// This allows the server to be easily used with different environments. Example:
 	// $ app -config config.stage.json
-	configPath := flag.String("config", "/etc/doshkhaleen/config.json", "path to config file")
+	configPath := flag.String("config", "/etc/workspace-mcp/config.json", "path to config file")
 	flag.Parse()
 
 	conf, err := config.Load(*configPath)
@@ -51,11 +51,15 @@ func main() {
 	slog.InfoContext(ctx, fmt.Sprintf("---------- NEW RUN: %s ----------", time.Now().Format(time.RFC822)))
 
 	// Instantiate tool handlers.
-	handler := tools.NewHandler()
+	handler, err := tools.NewHandler()
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create handler", "error", err)
+		panic("failed to create handler: " + err.Error())
+	}
 
 	// Create server with instructions. Tools will be attached separately.
 	server := mcp.NewServer(
-		&mcp.Implementation{Name: "DoshKhaleen", Version: "v0.0.0"},
+		&mcp.Implementation{Name: "Workspace MCP", Version: "v0.0.0"},
 		&mcp.ServerOptions{Instructions: serverInstructions})
 
 	// Attach all tools.
@@ -69,7 +73,7 @@ func main() {
 	}
 }
 
-func addTools(server *mcp.Server, handler tools.Handler) {
+func addTools(server *mcp.Server, handler *tools.Handler) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "ReadDocumentAsMarkdown",
 		Description: descriptionReadDocumentAsMarkdown,

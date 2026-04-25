@@ -9,7 +9,7 @@ import (
 /*
 Sample config JSON:
 {
-	"logFilePath": "/tmp/dosh-khaleen.shivanshbox.log"
+	"logFilePath": "/tmp/workspace-mcp.shivanshbox.log"
 }
 */
 
