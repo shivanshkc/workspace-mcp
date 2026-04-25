@@ -21,15 +21,26 @@ const (
 
 Rules:
 - Always use the document ID from the URL, not the document title.
-- For large documents, page using offset and limit rather than reading everything at once.
+- Before reading an unfamiliar document, call GetDocumentSize to check its character count.
+- Prefer reading documents in chunks using offset and limit rather than all at once.
 - Do not infer or fabricate document content — only use what the tool returns.`
+
+	descriptionGetDocumentSize = `Returns the size of a Google Doc in characters (as exported to markdown).
+
+Use this before reading an unfamiliar document to decide how to page through it.
+
+Parameters:
+- doc_id (required): the document ID from the Google Docs URL`
 
 	descriptionReadDocumentAsMarkdown = `Fetches a Google Doc and returns its content as markdown.
 
+offset and limit are in characters. To page through a document, advance offset by limit on each call.
+Omitting limit returns the entire document. If you're unsure about the size of the document, use GetDocumentSize first.
+
 Parameters:
 - doc_id (required): the document ID from the Google Docs URL (e.g. "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms")
-- limit (optional): number of lines to return, default 1000
-- offset (optional): line offset to start from, default 0; use with limit to page through large documents`
+- limit (optional): number of characters to return; omit to read the entire document
+- offset (optional): character offset to start from, default 0`
 )
 
 func main() {
@@ -94,6 +105,10 @@ func main() {
 }
 
 func addTools(server *mcp.Server, handler *tools.Handler) {
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "GetDocumentSize",
+		Description: descriptionGetDocumentSize,
+	}, handler.GetDocumentSize)
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "ReadDocumentAsMarkdown",
 		Description: descriptionReadDocumentAsMarkdown,

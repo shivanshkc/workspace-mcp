@@ -41,8 +41,26 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 	return &Client{driveService: driveService}, nil
 }
 
+// DocumentSize holds the size metrics of a document.
+type DocumentSize struct {
+	CharCount int
+}
+
 // ReadDocumentAsMarkdown exports the Google Doc as markdown via the Drive API.
 func (c *Client) ReadDocumentAsMarkdown(ctx context.Context, docID string) (string, error) {
+	return c.exportMarkdown(ctx, docID)
+}
+
+// GetDocumentSize returns the character count of the Google Doc as exported to markdown.
+func (c *Client) GetDocumentSize(ctx context.Context, docID string) (DocumentSize, error) {
+	markdown, err := c.exportMarkdown(ctx, docID)
+	if err != nil {
+		return DocumentSize{}, err
+	}
+	return DocumentSize{CharCount: len(markdown)}, nil
+}
+
+func (c *Client) exportMarkdown(ctx context.Context, docID string) (string, error) {
 	resp, err := c.driveService.Files.Export(docID, "text/markdown").Context(ctx).Download()
 	if err != nil {
 		return "", fmt.Errorf("failed to export document %s: %w", docID, err)
