@@ -2,6 +2,8 @@ package tools
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/shivanshkc/workspacemcp/pkg/workspace"
@@ -29,20 +31,34 @@ func NewHandler(wClient *workspace.Client) (*Handler, error) {
 	return &Handler{workspaceClient: wClient}, nil
 }
 
-// ReadDocumentAsMarkdown reads the specified Google Doc from start to end, converts it to markdown,
-// and returns the required number of lines as specified by limit and offset.
-//
-// The default values for limit and offset are 1000 and zero respectively.
-//
-// The returned text is formatted as cat -n output, meaning each line prefixed with its line number
-// and a tab, starting at line 1. For example:
-//
-//	1        first line of file
-//	2        second line of file
-//
-// This tool's signature is meant to be similar to Claude Code's built-in Read tool.
+// ReadDocumentAsMarkdown fetches the specified Google Doc and returns its content as markdown.
+// Use limit and offset to page through large documents; defaults are 1000 lines and 0 respectively.
 func (h *Handler) ReadDocumentAsMarkdown(
 	ctx context.Context, req *mcp.CallToolRequest, input ReadDocumentAsMarkdownInput,
 ) (*mcp.CallToolResult, ReadDocumentAsMarkdownOutput, error) {
-	return nil, ReadDocumentAsMarkdownOutput{}, nil
+	if input.Limit == 0 {
+		input.Limit = 1000
+	}
+
+	markdown, err := h.workspaceClient.ReadDocumentAsMarkdown(ctx, input.DocID)
+	if err != nil {
+		return nil, ReadDocumentAsMarkdownOutput{}, fmt.Errorf("failed to read document: %w", err)
+	}
+
+	lines := strings.Split(markdown, "\n")
+
+	if input.Offset < len(lines) {
+		lines = lines[input.Offset:]
+	} else {
+		lines = nil
+	}
+
+	if input.Limit < len(lines) {
+		lines = lines[:input.Limit]
+	}
+
+	content := strings.Join(lines, "\n")
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{Text: content}},
+	}, ReadDocumentAsMarkdownOutput{Content: content}, nil
 }

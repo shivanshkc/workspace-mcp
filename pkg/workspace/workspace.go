@@ -3,16 +3,17 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/docs/v1"
+	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )
 
-// Client represents a client for the Docs, Slides and Sheets services.
+// Client represents a client for Google Workspace services.
 type Client struct {
-	docService *docs.Service
+	driveService *drive.Service
 }
 
 // NewClient creates a new client with the given config.
@@ -22,7 +23,7 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 		return nil, fmt.Errorf("failed to read credentials file: %w", err)
 	}
 
-	authConfig, err := google.ConfigFromJSON(credentialsBytes, scopeDocsReadyOnly)
+	authConfig, err := google.ConfigFromJSON(credentialsBytes, scopeDriveReadOnly)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse client secret file to config: %w", err)
 	}
@@ -32,10 +33,27 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 		return nil, fmt.Errorf("failed to create http client: %w", err)
 	}
 
-	docService, err := docs.NewService(ctx, option.WithHTTPClient(httpClient))
+	driveService, err := drive.NewService(ctx, option.WithHTTPClient(httpClient))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create docs client: %w", err)
+		return nil, fmt.Errorf("failed to create drive service: %w", err)
 	}
 
-	return &Client{docService: docService}, nil
+	return &Client{driveService: driveService}, nil
+}
+
+// ReadDocumentAsMarkdown exports the Google Doc as markdown via the Drive API.
+func (c *Client) ReadDocumentAsMarkdown(ctx context.Context, docID string) (string, error) {
+	resp, err := c.driveService.Files.Export(docID, "text/markdown").Context(ctx).Download()
+	if err != nil {
+		return "", fmt.Errorf("failed to export document %s: %w", docID, err)
+	}
+
+	defer func() { _ = resp.Body.Close() }()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read export response: %w", err)
+	}
+
+	return string(data), nil
 }

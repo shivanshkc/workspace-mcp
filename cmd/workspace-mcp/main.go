@@ -17,9 +17,19 @@ import (
 )
 
 const (
-	serverInstructions = ``
+	serverInstructions = `You are connected to a Google Workspace MCP server. Use it to read content from Google Docs on behalf of the user.
 
-	descriptionReadDocumentAsMarkdown = ``
+Rules:
+- Always use the document ID from the URL, not the document title.
+- For large documents, page using offset and limit rather than reading everything at once.
+- Do not infer or fabricate document content — only use what the tool returns.`
+
+	descriptionReadDocumentAsMarkdown = `Fetches a Google Doc and returns its content as markdown.
+
+Parameters:
+- doc_id (required): the document ID from the Google Docs URL (e.g. "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms")
+- limit (optional): number of lines to return, default 1000
+- offset (optional): line offset to start from, default 0; use with limit to page through large documents`
 )
 
 func main() {

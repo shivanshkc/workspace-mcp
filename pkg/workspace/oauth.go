@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	scopeDocsReadyOnly = "https://www.googleapis.com/auth/documents.readonly"
+	scopeDriveReadOnly = "https://www.googleapis.com/auth/drive.readonly"
 )
 
 // CodeFunc accepts the auth URL and returns the OAuth code or an error.
@@ -25,7 +25,7 @@ func createHttpClient(ctx context.Context, config *oauth2.Config, tokenFilePath 
 	// If token found in local file, use it.
 	token, err := tokenFromFile(tokenFilePath)
 	if err == nil {
-		return config.Client(context.Background(), token), nil
+		return config.Client(ctx, token), nil
 	}
 
 	slog.ErrorContext(ctx, "failed to get token from local file", "error", err)
