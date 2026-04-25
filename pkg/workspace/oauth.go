@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	scopeDriveReadOnly = "https://www.googleapis.com/auth/drive.readonly"
+	scopeDriveReadOnly  = "https://www.googleapis.com/auth/drive.readonly"
+	scopeSheetsReadOnly = "https://www.googleapis.com/auth/spreadsheets.readonly"
 )
 
 // CodeFunc accepts the auth URL and returns the OAuth code or an error.

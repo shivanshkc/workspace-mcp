@@ -9,11 +9,13 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
+	"google.golang.org/api/sheets/v4"
 )
 
 // Client represents a client for Google Workspace services.
 type Client struct {
-	driveService *drive.Service
+	driveService  *drive.Service
+	sheetsService *sheets.Service
 }
 
 // NewClient creates a new client with the given config.
@@ -23,7 +25,7 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 		return nil, fmt.Errorf("failed to read credentials file: %w", err)
 	}
 
-	authConfig, err := google.ConfigFromJSON(credentialsBytes, scopeDriveReadOnly)
+	authConfig, err := google.ConfigFromJSON(credentialsBytes, scopeDriveReadOnly, scopeSheetsReadOnly)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse client secret file to config: %w", err)
 	}
@@ -38,7 +40,12 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 		return nil, fmt.Errorf("failed to create drive service: %w", err)
 	}
 
-	return &Client{driveService: driveService}, nil
+	sheetsService, err := sheets.NewService(ctx, option.WithHTTPClient(httpClient))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sheets service: %w", err)
+	}
+
+	return &Client{driveService: driveService, sheetsService: sheetsService}, nil
 }
 
 // DocumentSize holds the size metrics of a document.

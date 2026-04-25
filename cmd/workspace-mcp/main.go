@@ -17,13 +17,63 @@ import (
 )
 
 const (
-	serverInstructions = `You are connected to a Google Workspace MCP server. Use it to read content from Google Docs on behalf of the user.
+	serverInstructions = `You are connected to a Google Workspace MCP server. Use it to read content from Google Docs and Google Sheets on behalf of the user.
 
-Rules:
+Rules (Docs):
 - Always use the document ID from the URL, not the document title.
 - Before reading an unfamiliar document, call GetDocumentSize to check its character count.
 - Prefer reading documents in chunks using offset and limit rather than all at once.
-- Do not infer or fabricate document content — only use what the tool returns.`
+- Do not infer or fabricate document content — only use what the tool returns.
+
+Rules (Sheets):
+- Always call ListSheets first to discover sheet names before reading any data.
+- Call GetSheetSize before ReadSheet to understand the data extent and plan your ranges.
+- Read in focused ranges rather than fetching the whole sheet at once.
+- Sheet names are case-sensitive and must exactly match what ListSheets returns.
+- A sheet may contain multiple independent tables at different positions — read in small ranges first to locate structure before reading large blocks.
+- Do not infer or fabricate sheet data — only use what the tool returns.`
+
+	descriptionListSheets = `Returns the names of all sheets (tabs) in a Google Spreadsheet.
+
+Always call this first when working with an unfamiliar spreadsheet.
+The names returned are the exact strings required by GetSheetSize and ReadSheet.
+
+Parameters:
+- spreadsheet_id (required): the spreadsheet ID from the URL`
+
+	descriptionGetSheetSize = `Returns the extent of actual data in a sheet — the last populated row and column.
+
+Use this before ReadSheet to understand how much data exists and plan your ranges.
+dataRange in the response is ready to pass directly to ReadSheet as the range parameter.
+
+Note: this fetches the entire sheet internally to compute the extent.
+Avoid calling it repeatedly on very large sheets.
+
+Parameters:
+- spreadsheet_id (required): the spreadsheet ID from the URL
+- sheet_name (required): exact name as returned by ListSheets`
+
+	descriptionReadSheet = `Reads cells from a Google Sheet and returns them as a 2D array (array of rows, each row an array of values).
+
+Response format:
+- Values are unformatted: numbers are numbers, booleans are booleans, strings are strings.
+- Formula cells return their computed value, not the formula itself.
+- Empty cells mid-row are returned as empty string "".
+- Trailing empty cells in a row are omitted, so rows may have different lengths.
+- A shorter row means no data beyond its last value — not an error.
+- If range is omitted, the full data extent is fetched automatically via GetSheetSize.
+- Only omit range after confirming via GetSheetSize that the sheet fits in your context window.
+
+A1 notation guide:
+- "A1:E10" — columns A to E, rows 1 to 10
+- "B2:D50" — start mid-sheet at row 2, column B
+- "A1:A100" — single column
+- Columns beyond Z use two letters: AA, AB, ..., AZ, BA, ...
+
+Parameters:
+- spreadsheet_id (required): the spreadsheet ID from the URL
+- sheet_name (required): exact name as returned by ListSheets
+- range (optional): A1 notation; if omitted reads the full data extent via GetSheetSize`
 
 	descriptionGetDocumentSize = `Returns the size of a Google Doc in characters (as exported to markdown).
 
@@ -105,6 +155,7 @@ func main() {
 }
 
 func addTools(server *mcp.Server, handler *tools.Handler) {
+	// Docs tools.
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "GetDocumentSize",
 		Description: descriptionGetDocumentSize,
@@ -113,6 +164,20 @@ func addTools(server *mcp.Server, handler *tools.Handler) {
 		Name:        "ReadDocumentAsMarkdown",
 		Description: descriptionReadDocumentAsMarkdown,
 	}, handler.ReadDocumentAsMarkdown)
+
+	// Sheets tools.
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "ListSheets",
+		Description: descriptionListSheets,
+	}, handler.ListSheets)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "GetSheetSize",
+		Description: descriptionGetSheetSize,
+	}, handler.GetSheetSize)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "ReadSheet",
+		Description: descriptionReadSheet,
+	}, handler.ReadSheet)
 }
 
 func codeFunc(authURL string) (string, error) {
