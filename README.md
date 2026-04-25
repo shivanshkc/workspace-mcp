@@ -1,8 +1,16 @@
 # Workspace MCP
 
-An MCP server that allows AI agents to access Google documents and spreadsheets.
+An MCP server that gives AI agents the ability to navigate Google Drive, read Google Docs and Sheets.
 
 ## Tools
+
+### Drive
+
+| Tool | Description |
+|------|-------------|
+| `SearchFiles` | Searches Google Drive using Drive query syntax |
+| `ListFolderContents` | Lists direct children of a folder; use `"root"` for My Drive |
+| `GetFileMetadata` | Returns name, type, size, and modified time for a file |
 
 ### Docs
 
@@ -111,21 +119,20 @@ Create a JSON file anywhere on your machine, for example `~/workspace-mcp/config
 ### Build the server
 
 ```bash
-git clone https://github.com/shivanshkc/workspacemcp
-cd workspacemcp
-make build
+git clone https://github.com/shivanshkc/workspace-mcp
+cd workspace-mcp
+go build -o bin/workspace-mcp cmd/workspace-mcp/main.go
 ```
-
-The binary is written to `bin/workspace-mcp`.
 
 ---
 
 ### Register with Claude Code
 
-Open the `Makefile` and update `default_config_path` to point to the config file you created above. Then run:
+Run:
 
 ```bash
-make claude
+claude mcp add workspace-mcp -- bin/workspace-mcp -config /path/to/your/config
+claude mcp list # Optional, launches authentication with Google
 ```
 
 This builds the binary and registers it as an MCP server in Claude Code.
