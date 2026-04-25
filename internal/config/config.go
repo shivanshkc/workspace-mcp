@@ -9,13 +9,17 @@ import (
 /*
 Sample config JSON:
 {
+	"googleCredentialsFile": "/etc/workspace-mcp/credentials.shivanshbox.json",
+	"googleTokenFile": "/etc/workspace-mcp/token.shivanshbox.json",
 	"logFilePath": "/tmp/workspace-mcp.shivanshbox.log"
 }
 */
 
 // Config encapsulates all config required by the application.
 type Config struct {
-	LogFilePath string `json:"logFilePath"`
+	GoogleCredentialsFile string `json:"googleCredentialsFile"`
+	GoogleTokenFile       string `json:"googleTokenFile"`
+	LogFilePath           string `json:"logFilePath"`
 }
 
 // Load configs from the given JSON file.

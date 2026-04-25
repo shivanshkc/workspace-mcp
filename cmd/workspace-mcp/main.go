@@ -13,6 +13,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/shivanshkc/workspacemcp/internal/config"
 	"github.com/shivanshkc/workspacemcp/internal/tools"
+	"github.com/shivanshkc/workspacemcp/pkg/workspace"
 )
 
 const (
@@ -50,8 +51,17 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(file, nil)))
 	slog.InfoContext(ctx, fmt.Sprintf("---------- NEW RUN: %s ----------", time.Now().Format(time.RFC822)))
 
+	// Establish connectivity with Google Workspace.
+	wClient, err := workspace.NewClient(ctx, conf.GoogleCredentialsFile, conf.GoogleTokenFile, codeFunc)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create workspace client", "error", err)
+		panic("failed to create workspace client: " + err.Error())
+	}
+
+	slog.InfoContext(ctx, "connected to google workspace successfully")
+
 	// Instantiate tool handlers.
-	handler, err := tools.NewHandler()
+	handler, err := tools.NewHandler(wClient)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create handler", "error", err)
 		panic("failed to create handler: " + err.Error())
@@ -65,7 +75,7 @@ func main() {
 	// Attach all tools.
 	addTools(server, handler)
 
-	slog.Info("Starting server")
+	slog.InfoContext(ctx, "starting server...")
 	// Run the server over stdin/stdout, until the client disconnects
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		slog.ErrorContext(ctx, "error in server.Run call", "error", err)
@@ -78,4 +88,15 @@ func addTools(server *mcp.Server, handler *tools.Handler) {
 		Name:        "ReadDocumentAsMarkdown",
 		Description: descriptionReadDocumentAsMarkdown,
 	}, handler.ReadDocumentAsMarkdown)
+}
+
+func codeFunc(authURL string) (string, error) {
+	fmt.Println("Go to the following link in your browser then type the authorization code:\n", authURL)
+
+	var authCode string
+	if _, err := fmt.Scan(&authCode); err != nil {
+		return "", fmt.Errorf("failed to scan authorization code: %w", err)
+	}
+
+	return authCode, nil
 }
