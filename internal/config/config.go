@@ -11,7 +11,8 @@ Sample config JSON:
 {
 	"googleCredentialsFile": "/etc/workspace-mcp/credentials.shivanshbox.json",
 	"googleTokenFile": "/etc/workspace-mcp/token.shivanshbox.json",
-	"logFilePath": "/tmp/workspace-mcp.shivanshbox.log"
+	"logFilePath": "/tmp/workspace-mcp.shivanshbox.log",
+	"oauthCallbackPort": 47291
 }
 */
 
@@ -20,7 +21,9 @@ type Config struct {
 	GoogleCredentialsFile string `json:"googleCredentialsFile"`
 	GoogleTokenFile       string `json:"googleTokenFile"`
 	LogFilePath           string `json:"logFilePath"`
+	OAuthCallbackPort     int    `json:"oauthCallbackPort"`
 }
+
 
 // Load configs from the given JSON file.
 func Load(jsonPath string) (Config, error) {

@@ -10,6 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"net/http"
+	"os/exec"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/shivanshkc/workspacemcp/internal/config"
 	"github.com/shivanshkc/workspacemcp/internal/tools"
@@ -123,7 +126,7 @@ func main() {
 	slog.InfoContext(ctx, fmt.Sprintf("---------- NEW RUN: %s ----------", time.Now().Format(time.RFC822)))
 
 	// Establish connectivity with Google Workspace.
-	wClient, err := workspace.NewClient(ctx, conf.GoogleCredentialsFile, conf.GoogleTokenFile, codeFunc)
+	wClient, err := workspace.NewClient(ctx, conf.GoogleCredentialsFile, conf.GoogleTokenFile, conf.OAuthCallbackPort, autoCodeFunc(ctx, conf.OAuthCallbackPort))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create workspace client", "error", err)
 		panic("failed to create workspace client: " + err.Error())
@@ -180,7 +183,48 @@ func addTools(server *mcp.Server, handler *tools.Handler) {
 	}, handler.ReadSheet)
 }
 
-func codeFunc(authURL string) (string, error) {
+// autoCodeFunc returns a CodeFunc that starts a local HTTP server on the given port,
+// opens the browser to the auth URL, and captures the code when Google redirects back.
+func autoCodeFunc(ctx context.Context, port int) workspace.CodeFunc {
+	return func(authURL string) (string, error) {
+		codeCh := make(chan string, 1)
+
+		srv := &http.Server{
+			Addr: fmt.Sprintf(":%d", port),
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				code := r.URL.Query().Get("code")
+				if code == "" {
+					http.Error(w, "missing code", http.StatusBadRequest)
+					return
+				}
+				fmt.Fprintln(w, "Authorization complete. You may close this tab.")
+				if f, ok := w.(http.Flusher); ok {
+					f.Flush()
+				}
+				codeCh <- code
+			}),
+		}
+
+		go func() { _ = srv.ListenAndServe() }()
+
+		if err := exec.Command("open", authURL).Start(); err != nil {
+			_ = srv.Close()
+			return "", fmt.Errorf("failed to open browser: %w", err)
+		}
+
+		select {
+		case code := <-codeCh:
+			_ = srv.Close()
+			return code, nil
+		case <-ctx.Done():
+			_ = srv.Close()
+			return "", ctx.Err()
+		}
+	}
+}
+
+// manualCodeFunc is a CodeFunc that prints the auth URL and reads the code from stdin.
+func manualCodeFunc(authURL string) (string, error) {
 	fmt.Println("Go to the following link in your browser then type the authorization code:\n", authURL)
 
 	var authCode string

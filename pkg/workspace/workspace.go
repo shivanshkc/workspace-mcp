@@ -19,7 +19,7 @@ type Client struct {
 }
 
 // NewClient creates a new client with the given config.
-func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, codeFunc CodeFunc) (*Client, error) {
+func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, callbackPort int, codeFunc CodeFunc) (*Client, error) {
 	credentialsBytes, err := os.ReadFile(credentialsFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read credentials file: %w", err)
@@ -29,6 +29,8 @@ func NewClient(ctx context.Context, credentialsFilePath, tokenFilePath string, c
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse client secret file to config: %w", err)
 	}
+
+	authConfig.RedirectURL = fmt.Sprintf("http://localhost:%d", callbackPort)
 
 	httpClient, err := createHttpClient(ctx, authConfig, tokenFilePath, codeFunc)
 	if err != nil {
